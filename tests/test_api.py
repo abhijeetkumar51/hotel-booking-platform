@@ -15,6 +15,20 @@ import concurrent.futures
 import datetime
 
 # ---------------------------------------------------------------------------
+# 0. API Index
+# ---------------------------------------------------------------------------
+
+
+class TestIndex:
+    def test_index_returns_200_and_service_info(self, client):
+        resp = client.get("/")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["service"] == "hotel-booking-api"
+        assert "endpoints" in data
+
+
+# ---------------------------------------------------------------------------
 # 1. Health endpoint
 # ---------------------------------------------------------------------------
 

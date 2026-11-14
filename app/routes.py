@@ -74,8 +74,28 @@ def _validate_reservation_payload(data: dict) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
-# Health / Readiness
+# API Index / Health / Readiness
 # ---------------------------------------------------------------------------
+
+
+@api.route("/")
+def index():
+    """API overview and directory."""
+    return jsonify(
+        {
+            "service": "hotel-booking-api",
+            "version": "1.0.0",
+            "status": "running",
+            "endpoints": {
+                "health": "/health",
+                "ready": "/ready",
+                "rooms": "/api/rooms",
+                "availability": "/api/availability?check_in=YYYY-MM-DD&check_out=YYYY-MM-DD",
+                "create_reservation": "POST /api/reservations",
+                "lookup_reservation": "GET /api/reservations/<booking_reference>",
+            },
+        }
+    ), 200
 
 
 @api.route("/health")
