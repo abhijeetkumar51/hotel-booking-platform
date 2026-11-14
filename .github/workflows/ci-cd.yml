@@ -77,7 +77,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKERHUB_USERNAME || 'abhijeetkumar51' }}/hotel-booking-platform
+          images: abhijeetkumar51/hotel-booking-platform
           tags: |
             type=sha,prefix=sha-,format=short
             type=raw,value=latest,enable=true
@@ -92,5 +92,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Image digest
-        run: echo "Digest: ${{ steps.docker_build.outputs.digest }}"
+      - name: Print image digest
+        run: |
+          echo "Image Digest: ${{ steps.docker_build.outputs.digest }}"
