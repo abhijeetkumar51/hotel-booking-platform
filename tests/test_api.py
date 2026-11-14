@@ -20,12 +20,17 @@ import datetime
 
 
 class TestIndex:
-    def test_index_returns_200_and_service_info(self, client):
-        resp = client.get("/")
+    def test_index_json_returns_service_info(self, client):
+        resp = client.get("/", headers={"Accept": "application/json"})
         assert resp.status_code == 200
         data = resp.get_json()
         assert data["service"] == "hotel-booking-api"
         assert "endpoints" in data
+
+    def test_index_html_renders_dashboard(self, client):
+        resp = client.get("/", headers={"Accept": "text/html"})
+        assert resp.status_code == 200
+        assert b"Hotel Booking Platform" in resp.data
 
 
 # ---------------------------------------------------------------------------

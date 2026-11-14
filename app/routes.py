@@ -7,7 +7,7 @@ import uuid
 
 import psycopg2
 import psycopg2.extras
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, render_template, request
 
 from app.database import check_connection, get_connection
 
@@ -80,22 +80,26 @@ def _validate_reservation_payload(data: dict) -> list[str]:
 
 @api.route("/")
 def index():
-    """API overview and directory."""
-    return jsonify(
-        {
-            "service": "hotel-booking-api",
-            "version": "1.0.0",
-            "status": "running",
-            "endpoints": {
-                "health": "/health",
-                "ready": "/ready",
-                "rooms": "/api/rooms",
-                "availability": "/api/availability?check_in=YYYY-MM-DD&check_out=YYYY-MM-DD",
-                "create_reservation": "POST /api/reservations",
-                "lookup_reservation": "GET /api/reservations/<booking_reference>",
-            },
-        }
-    ), 200
+    """Interactive dashboard for browsers, JSON directory for API clients."""
+    accept = request.headers.get("Accept", "")
+    if "application/json" in accept and "text/html" not in accept:
+        return jsonify(
+            {
+                "service": "hotel-booking-api",
+                "version": "1.0.0",
+                "status": "running",
+                "endpoints": {
+                    "health": "/health",
+                    "ready": "/ready",
+                    "rooms": "/api/rooms",
+                    "availability": "/api/availability?check_in=YYYY-MM-DD&check_out=YYYY-MM-DD",
+                    "create_reservation": "POST /api/reservations",
+                    "lookup_reservation": "GET /api/reservations/<booking_reference>",
+                },
+            }
+        ), 200
+
+    return render_template("index.html")
 
 
 @api.route("/health")

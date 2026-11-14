@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hotel Booking Platform | Cloud Deployment Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#eff6ff', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 900: '#1e3a8a' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+
+  <!-- Navbar -->
+  <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+          <i class="fa-solid fa-hotel text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-white">Hotel Booking Platform</h1>
+          <p class="text-xs text-slate-400">AWS EC2 &bull; Docker &bull; Nginx &bull; PostgreSQL</p>
+        </div>
+      </div>
+      
+      <!-- Live Probes -->
+      <div class="flex items-center space-x-2 text-xs">
+        <div id="healthBadge" class="flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+          <span class="w-2 h-2 rounded-full bg-slate-500 animate-pulse"></span>
+          <span>API: Checking...</span>
+        </div>
+        <div id="dbBadge" class="flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+          <span class="w-2 h-2 rounded-full bg-slate-500 animate-pulse"></span>
+          <span>DB: Checking...</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="max-w-7xl mx-auto px-4 pt-8 pb-4">
+    <div class="bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-purple-900/40 border border-blue-500/20 rounded-2xl p-6 md:p-8 relative overflow-hidden">
+      <div class="relative z-10 max-w-3xl">
+        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 uppercase tracking-wider">
+          Individual Assessment Live Demo
+        </span>
+        <h2 class="text-2xl md:text-3xl font-extrabold text-white mt-3">
+          Concurrency-Safe Hotel Reservation System
+        </h2>
+        <p class="text-slate-300 text-sm md:text-base mt-2 leading-relaxed">
+          Powered by PostgreSQL <code class="bg-slate-800 px-1.5 py-0.5 rounded text-blue-300 font-mono text-xs">btree_gist</code> exclusion constraints preventing overlapping double-bookings, fully automated with CI/CD and containerized on AWS.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Grid -->
+  <main class="max-w-7xl mx-auto px-4 py-4 flex-1 grid grid-cols-1 lg:grid-cols-3 gap-8">
+    
+    <!-- Left 2 Cols: Room Catalog & Booking -->
+    <div class="lg:col-span-2 space-y-6">
+      
+      <!-- Rooms Section -->
+      <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-bold flex items-center gap-2">
+            <i class="fa-solid fa-bed text-blue-400"></i> Available Rooms Catalog
+          </h3>
+          <button onclick="loadRooms()" class="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition">
+            <i class="fa-solid fa-rotate-right"></i> Refresh
+          </button>
+        </div>
+        <div id="roomsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="p-4 bg-slate-900 rounded-xl text-center text-slate-400 text-sm">Loading rooms...</div>
+        </div>
+      </div>
+
+      <!-- Quick Reservation Form -->
+      <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl">
+        <h3 class="text-lg font-bold mb-4 flex items-center gap-2 text-white">
+          <i class="fa-solid fa-calendar-check text-green-400"></i> Make a Reservation
+        </h3>
+        
+        <form id="bookingForm" onsubmit="submitBooking(event)" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Select Room</label>
+              <select id="bookRoomId" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
+                <option value="">Loading rooms...</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Guest Full Name</label>
+              <input type="text" id="bookGuestName" required placeholder="e.g. Abhijeet Kumar" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Guest Email</label>
+              <input type="email" id="bookGuestEmail" required placeholder="e.g. abhijeet@example.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Check-in Date</label>
+                <input type="date" id="bookCheckIn" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Check-out Date</label>
+                <input type="date" id="bookCheckOut" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-2">
+            <button type="submit" id="bookBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-medium px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition shadow-lg shadow-blue-600/30">
+              <i class="fa-solid fa-paper-plane"></i> Confirm Booking
+            </button>
+            <span class="text-xs text-slate-400">Zero double-booking guarantee via GiST index</span>
+          </div>
+        </form>
+
+        <div id="bookingAlert" class="hidden mt-4 p-4 rounded-xl text-sm"></div>
+      </div>
+
+    </div>
+
+    <!-- Right Col: Booking Lookup & Concurrency Test -->
+    <div class="space-y-6">
+
+      <!-- Lookup Card -->
+      <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl">
+        <h3 class="text-lg font-bold mb-4 flex items-center gap-2 text-white">
+          <i class="fa-solid fa-magnifying-glass text-purple-400"></i> Lookup Reservation
+        </h3>
+        <div class="space-y-3">
+          <div class="flex gap-2">
+            <input type="text" id="lookupRef" placeholder="HB-XXXXXXXX" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 font-mono uppercase focus:outline-none focus:border-purple-500">
+            <button onclick="lookupBooking()" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+              Find
+            </button>
+          </div>
+          <div id="lookupResult" class="hidden mt-3 p-4 bg-slate-900 border border-slate-800 rounded-xl text-xs space-y-1 font-mono"></div>
+        </div>
+      </div>
+
+      <!-- Live Concurrency Conflict Demo -->
+      <div class="bg-slate-950 border border-amber-500/30 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+        <div class="flex items-center gap-2 mb-2 text-amber-400 font-bold">
+          <i class="fa-solid fa-shield-halved"></i> Concurrency Stress Test
+        </div>
+        <p class="text-xs text-slate-300 leading-relaxed mb-4">
+          Click below to simulate 2 conflicting overlapping bookings submitted simultaneously. Verified that PostgreSQL rejects one with <strong class="text-amber-300">409 Conflict</strong>!
+        </p>
+        <button onclick="runConcurrencyTest()" id="conflictBtn" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-medium py-2.5 rounded-lg text-xs flex items-center justify-center gap-2 transition shadow-lg shadow-amber-600/20">
+          <i class="fa-solid fa-bolt"></i> Simulate Overlapping Booking Conflict
+        </button>
+        <div id="conflictResult" class="hidden mt-3 p-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-mono"></div>
+      </div>
+
+      <!-- Quick REST API Directory -->
+      <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl">
+        <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Live API Endpoints</h4>
+        <div class="space-y-2 text-xs font-mono">
+          <a href="/health" target="_blank" class="block p-2 rounded bg-slate-900 hover:bg-slate-850 text-blue-400 hover:underline">GET /health</a>
+          <a href="/ready" target="_blank" class="block p-2 rounded bg-slate-900 hover:bg-slate-850 text-blue-400 hover:underline">GET /ready</a>
+          <a href="/api/rooms" target="_blank" class="block p-2 rounded bg-slate-900 hover:bg-slate-850 text-blue-400 hover:underline">GET /api/rooms</a>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800 bg-slate-950/80 py-4 mt-8 text-center text-xs text-slate-500">
+    <p>Hotel Booking Platform &bull; Individual Cloud Deployment Assessment &bull; Designed by Abhijeet Kumar</p>
+  </footer>
+
+  <!-- Client-side Logic -->
+  <script>
+    // Set default dates (tomorrow and 3 days later)
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const checkout = new Date(today);
+    checkout.setDate(checkout.getDate() + 4);
+
+    document.getElementById('bookCheckIn').value = tomorrow.toISOString().split('T')[0];
+    document.getElementById('bookCheckOut').value = checkout.toISOString().split('T')[0];
+
+    // Check health probes
+    async function checkProbes() {
+      try {
+        const hRes = await fetch('/health');
+        const hData = await hRes.json();
+        if (hData.status === 'healthy') {
+          document.getElementById('healthBadge').innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500"></span><span class="text-green-400">API: Healthy</span>';
+          document.getElementById('healthBadge').className = 'flex items-center space-x-1.5 px-3 py-1 rounded-full bg-green-950/60 text-green-300 border border-green-800';
+        }
+      } catch (e) {
+        document.getElementById('healthBadge').innerHTML = '<span class="w-2 h-2 rounded-full bg-red-500"></span><span class="text-red-400">API: Offline</span>';
+      }
+
+      try {
+        const rRes = await fetch('/ready');
+        const rData = await rRes.json();
+        if (rData.status === 'ready') {
+          document.getElementById('dbBadge').innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500"></span><span class="text-green-400">PostgreSQL: Ready</span>';
+          document.getElementById('dbBadge').className = 'flex items-center space-x-1.5 px-3 py-1 rounded-full bg-green-950/60 text-green-300 border border-green-800';
+        }
+      } catch (e) {
+        document.getElementById('dbBadge').innerHTML = '<span class="w-2 h-2 rounded-full bg-red-500"></span><span class="text-red-400">DB: Disconnected</span>';
+      }
+    }
+
+    // Load rooms catalog
+    async function loadRooms() {
+      const grid = document.getElementById('roomsGrid');
+      const select = document.getElementById('bookRoomId');
+      grid.innerHTML = '<div class="col-span-2 text-center py-4 text-slate-400 text-sm">Loading rooms...</div>';
+
+      try {
+        const res = await fetch('/api/rooms');
+        const data = await res.json();
+        const rooms = data.rooms || [];
+
+        grid.innerHTML = '';
+        select.innerHTML = '<option value="">-- Choose a Room --</option>';
+
+        rooms.forEach(r => {
+          // Add to grid
+          const card = document.createElement('div');
+          card.className = 'p-4 bg-slate-900 border border-slate-800 rounded-xl hover:border-slate-700 transition flex flex-col justify-between';
+          card.innerHTML = `
+            <div>
+              <div class="flex justify-between items-start">
+                <div>
+                  <span class="text-xs uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-blue-900/50 text-blue-300 border border-blue-800/50">${r.room_type}</span>
+                  <h4 class="text-lg font-bold text-white mt-1">Room ${r.room_number}</h4>
+                </div>
+                <span class="text-sm font-extrabold text-green-400 font-mono">$${r.price_per_night}/nt</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-2">${r.description || 'Comfortable stay'}</p>
+            </div>
+            <div class="flex justify-between items-center text-xs text-slate-500 mt-3 pt-2 border-t border-slate-800/60">
+              <span><i class="fa-solid fa-users text-slate-400"></i> Max ${r.capacity} Guests</span>
+              <button onclick="selectRoom(${r.id})" class="text-blue-400 hover:underline">Select &rarr;</button>
+            </div>
+          `;
+          grid.appendChild(card);
+
+          // Add to select dropdown
+          const opt = document.createElement('option');
+          opt.value = r.id;
+          opt.textContent = `Room ${r.room_number} (${r.room_type.toUpperCase()} - $${r.price_per_night})`;
+          select.appendChild(opt);
+        });
+      } catch (err) {
+        grid.innerHTML = '<div class="col-span-2 text-center text-red-400 text-xs py-4">Failed to load rooms.</div>';
+      }
+    }
+
+    function selectRoom(id) {
+      document.getElementById('bookRoomId').value = id;
+      document.getElementById('bookGuestName').focus();
+    }
+
+    // Submit Reservation
+    async function submitBooking(e) {
+      e.preventDefault();
+      const alert = document.getElementById('bookingAlert');
+      const btn = document.getElementById('bookBtn');
+      alert.className = 'hidden';
+
+      const payload = {
+        room_id: parseInt(document.getElementById('bookRoomId').value),
+        guest_name: document.getElementById('bookGuestName').value.trim(),
+        guest_email: document.getElementById('bookGuestEmail').value.trim(),
+        check_in: document.getElementById('bookCheckIn').value,
+        check_out: document.getElementById('bookCheckOut').value
+      };
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
+
+      try {
+        const res = await fetch('/api/reservations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (res.status === 201) {
+          alert.className = 'mt-4 p-4 rounded-xl text-sm bg-green-950/80 border border-green-700 text-green-200 block';
+          alert.innerHTML = `
+            <div class="font-bold flex items-center gap-1.5"><i class="fa-solid fa-circle-check"></i> Booking Confirmed!</div>
+            <div class="mt-1 text-xs font-mono">Reference: <strong class="text-white text-sm">${data.reservation.booking_reference}</strong></div>
+            <div class="text-xs text-green-300/80 mt-1">Dates: ${data.reservation.check_in} to ${data.reservation.check_out} &bull; Room ID: ${data.reservation.room_id}</div>
+          `;
+          document.getElementById('lookupRef').value = data.reservation.booking_reference;
+        } else if (res.status === 409) {
+          alert.className = 'mt-4 p-4 rounded-xl text-sm bg-amber-950/80 border border-amber-700 text-amber-200 block';
+          alert.innerHTML = `
+            <div class="font-bold flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation"></i> Booking Conflict (409)</div>
+            <div class="mt-1 text-xs">${data.error || 'Room is already booked for these dates.'}</div>
+            <div class="text-xs text-amber-300/80 mt-1">PostgreSQL GiST exclusion constraint prevented this overlapping reservation.</div>
+          `;
+        } else {
+          alert.className = 'mt-4 p-4 rounded-xl text-sm bg-red-950/80 border border-red-700 text-red-200 block';
+          alert.innerHTML = `<strong>Error (${res.status}):</strong> ${data.error || JSON.stringify(data.errors || data)}`;
+        }
+      } catch (e) {
+        alert.className = 'mt-4 p-4 rounded-xl text-sm bg-red-950/80 border border-red-700 text-red-200 block';
+        alert.innerHTML = `Network failure: ${e.message}`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Confirm Booking';
+      }
+    }
+
+    // Lookup
+    async function lookupBooking() {
+      const ref = document.getElementById('lookupRef').value.trim();
+      const resDiv = document.getElementById('lookupResult');
+      if (!ref) return;
+
+      resDiv.className = 'mt-3 p-4 bg-slate-900 border border-slate-800 rounded-xl text-xs space-y-1 font-mono text-slate-300 block';
+      resDiv.innerHTML = 'Searching...';
+
+      try {
+        const res = await fetch(`/api/reservations/${encodeURIComponent(ref)}`);
+        const data = await res.json();
+        if (res.status === 200) {
+          const r = data.reservation;
+          resDiv.innerHTML = `
+            <div class="text-green-400 font-bold mb-1">✓ Reservation Found</div>
+            <div>Ref: <span class="text-white">${r.booking_reference}</span></div>
+            <div>Guest: <span class="text-white">${r.guest_name}</span></div>
+            <div>Room: <span class="text-white">${r.room_number} (${r.room_type})</span></div>
+            <div>Dates: <span class="text-white">${r.check_in} &rarr; ${r.check_out}</span></div>
+            <div>Status: <span class="text-green-300 uppercase">${r.status}</span></div>
+          `;
+        } else {
+          resDiv.innerHTML = `<span class="text-red-400">✗ Reservation not found (${ref})</span>`;
+        }
+      } catch (err) {
+        resDiv.innerHTML = `<span class="text-red-400">Error: ${err.message}</span>`;
+      }
+    }
+
+    // Concurrency test demo
+    async function runConcurrencyTest() {
+      const btn = document.getElementById('conflictBtn');
+      const resDiv = document.getElementById('conflictResult');
+      btn.disabled = true;
+      resDiv.className = 'mt-3 p-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-mono block';
+      resDiv.innerHTML = 'Firing 2 simultaneous overlapping booking requests for Room 1...';
+
+      const payload1 = {
+        room_id: 1, guest_name: "Concurrency Test 1", guest_email: "test1@example.com",
+        check_in: "2031-01-10", check_out: "2031-01-15"
+      };
+      const payload2 = {
+        room_id: 1, guest_name: "Concurrency Test 2", guest_email: "test2@example.com",
+        check_in: "2031-01-12", check_out: "2031-01-17"
+      };
+
+      try {
+        const [r1, r2] = await Promise.all([
+          fetch('/api/reservations', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload1) }),
+          fetch('/api/reservations', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload2) })
+        ]);
+
+        const statuses = [r1.status, r2.status].sort();
+        if (statuses[0] === 201 && statuses[1] === 409) {
+          resDiv.innerHTML = `
+            <div class="text-green-400 font-bold">✓ TEST PASSED: Concurrency Lock Enforced!</div>
+            <div>Request 1 Status: <span class="text-green-300">201 Created</span></div>
+            <div>Request 2 Status: <span class="text-amber-400">409 Conflict (Overlapping Rejected)</span></div>
+            <div class="text-slate-400 mt-1">Zero Race Conditions. Database exclusion constraint is functioning perfectly.</div>
+          `;
+        } else {
+          resDiv.innerHTML = `Statuses returned: ${r1.status}, ${r2.status}`;
+        }
+      } catch (err) {
+        resDiv.innerHTML = `Error: ${err.message}`;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // Initial load
+    checkProbes();
+    loadRooms();
+    setInterval(checkProbes, 15000);
+  </script>
+</body>
+</html>
